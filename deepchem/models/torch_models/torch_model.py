@@ -272,6 +272,21 @@ class TorchModel(Model):
         self._output_functions: Dict[Any, Any] = {}
         self._optimizer_for_vars: Dict[Any, Any] = {}
 
+    def compile(self, mode: str, warmup=False, warmup_data=None):
+        if self.device != torch.device('cuda'):
+            raise ValueError(
+                "Only models running on CUDA devices can be compiled.")
+        compiled_model = torch.compile(self.model, mode= mode)
+        self.model = compiled_model
+
+        if warmup:
+            if warmup_data is None:
+                raise ValueError("warmup_data must be provided if warmup is True.")
+            # warmup_data = torch.tensor(warmup_data, device=self.device)
+            inputs, labels, weights = self._prepare_batch(warmup_data)
+            for i in range(10):
+                self.model(inputs[0])
+
     def _ensure_built(self) -> None:
         """The first time this is called, create internal data structures."""
         if self._built:
